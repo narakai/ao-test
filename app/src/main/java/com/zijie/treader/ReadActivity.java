@@ -1,7 +1,6 @@
 package com.zijie.treader;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -10,17 +9,13 @@ import android.content.IntentFilter;
 import android.database.SQLException;
 import android.graphics.Point;
 import android.graphics.Typeface;
-import android.os.BatteryManager;
 import android.os.Build;
-import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.design.widget.AppBarLayout;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Display;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,51 +23,36 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.baidu.tts.auth.AuthInfo;
-import com.baidu.tts.client.SpeechError;
-import com.baidu.tts.client.SpeechSynthesizer;
-import com.baidu.tts.client.SpeechSynthesizerListener;
-import com.baidu.tts.client.TtsMode;
 import com.zijie.treader.base.BaseActivity;
 import com.zijie.treader.db.BookList;
 import com.zijie.treader.db.BookMarks;
 import com.zijie.treader.dialog.PageModeDialog;
-import com.zijie.treader.dialog.ReadSettingDialog;
 import com.zijie.treader.dialog.SettingDialog;
-import com.zijie.treader.filechooser.FileChooserActivity;
 import com.zijie.treader.util.BrightnessUtil;
 import com.zijie.treader.util.PageFactory;
-import com.zijie.treader.util.TRPage;
-import com.zijie.treader.view.BookPageWidget;
 import com.zijie.treader.view.PageWidget;
 
 import org.litepal.crud.DataSupport;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 /**
  * Created by Administrator on 2016/7/15 0015.
  */
-public class ReadActivity extends BaseActivity implements SpeechSynthesizerListener {
+public class ReadActivity extends BaseActivity {
     private static final String TAG = "ReadActivity";
     private final static String EXTRA_BOOK = "bookList";
     private final static int MESSAGE_CHANGEPROGRESS = 1;
@@ -124,8 +104,6 @@ public class ReadActivity extends BaseActivity implements SpeechSynthesizerListe
     private SettingDialog mSettingDialog;
     private PageModeDialog mPageModeDialog;
     private Boolean mDayOrNight;
-    // 语音合成客户端
-    private SpeechSynthesizer mSpeechSynthesizer;
     private boolean isSpeaking = false;
 
     // 接收电池信息更新的广播
@@ -314,11 +292,7 @@ public class ReadActivity extends BaseActivity implements SpeechSynthesizerListe
                 }
 
                 pageFactory.prePage();
-                if (pageFactory.isfirstPage()) {
-                    return false;
-                }
-
-                return true;
+                return !pageFactory.isfirstPage();
             }
 
             @Override
@@ -329,10 +303,7 @@ public class ReadActivity extends BaseActivity implements SpeechSynthesizerListe
                 }
 
                 pageFactory.nextPage();
-                if (pageFactory.islastPage()) {
-                    return false;
-                }
-                return true;
+                return !pageFactory.islastPage();
             }
 
             @Override
@@ -363,17 +334,11 @@ public class ReadActivity extends BaseActivity implements SpeechSynthesizerListe
         if (!isShow){
             hideSystemUI();
         }
-        if (mSpeechSynthesizer != null){
-            mSpeechSynthesizer.resume();
-        }
     }
 
     @Override
     protected void onStop(){
         super.onStop();
-        if (mSpeechSynthesizer != null){
-            mSpeechSynthesizer.stop();
-        }
     }
 
     @Override
@@ -383,9 +348,6 @@ public class ReadActivity extends BaseActivity implements SpeechSynthesizerListe
         bookpage = null;
         unregisterReceiver(myReceiver);
         isSpeaking = false;
-        if (mSpeechSynthesizer != null){
-            mSpeechSynthesizer.release();
-        }
     }
 
     @Override
@@ -613,52 +575,7 @@ public class ReadActivity extends BaseActivity implements SpeechSynthesizerListe
         hideSystemUI();
     }
 
-    private void initialTts() {
-        this.mSpeechSynthesizer = SpeechSynthesizer.getInstance();
-        this.mSpeechSynthesizer.setContext(this);
-        this.mSpeechSynthesizer.setSpeechSynthesizerListener(this);
-        // 文本模型文件路径 (离线引擎使用)
-        this.mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_TEXT_MODEL_FILE, ((AppContext)getApplication()).getTTPath() + "/"
-                + AppContext.TEXT_MODEL_NAME);
-        // 声学模型文件路径 (离线引擎使用)
-        this.mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_SPEECH_MODEL_FILE, ((AppContext)getApplication()).getTTPath() + "/"
-                + AppContext.SPEECH_FEMALE_MODEL_NAME);
-        // 本地授权文件路径,如未设置将使用默认路径.设置临时授权文件路径，LICENCE_FILE_NAME请替换成临时授权文件的实际路径，仅在使用临时license文件时需要进行设置，如果在[应用管理]中开通了正式离线授权，不需要设置该参数，建议将该行代码删除（离线引擎）
-        // 如果合成结果出现临时授权文件将要到期的提示，说明使用了临时授权文件，请删除临时授权即可。
-//        this.mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_LICENCE_FILE, ((AppContext)getApplication()).getTTPath() + "/"
-//                + AppContext.LICENSE_FILE_NAME);
-        // 请替换为语音开发者平台上注册应用得到的App ID (离线授权)
-        this.mSpeechSynthesizer.setAppId("8921835"/*这里只是为了让Demo运行使用的APPID,请替换成自己的id。*/);
-        // 请替换为语音开发者平台注册应用得到的apikey和secretkey (在线授权)
-        this.mSpeechSynthesizer.setApiKey("sjEFlROl4j090FtDTHlEpvFB",
-                "a2d95dc24960e03ef2d41a5fb1a2c025"/*这里只是为了让Demo正常运行使用APIKey,请替换成自己的APIKey*/);
-        // 发音人（在线引擎），可用参数为0,1,2,3。。。（服务器端会动态增加，各值含义参考文档，以文档说明为准。0--普通女声，1--普通男声，2--特别男声，3--情感男声。。。）
-        this.mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEAKER, "0");
-        // 设置Mix模式的合成策略
-        this.mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_MIX_MODE, SpeechSynthesizer.MIX_MODE_DEFAULT);
-        // 授权检测接口(只是通过AuthInfo进行检验授权是否成功。)
-        // AuthInfo接口用于测试开发者是否成功申请了在线或者离线授权，如果测试授权成功了，可以删除AuthInfo部分的代码（该接口首次验证时比较耗时），不会影响正常使用（合成使用时SDK内部会自动验证授权）
-        AuthInfo authInfo = this.mSpeechSynthesizer.auth(TtsMode.MIX);
-
-        if (authInfo.isSuccess()) {
-            Log.e(TAG,"auth success");
-        } else {
-            String errorMsg = authInfo.getTtsError().getDetailMessage();
-            Log.e(TAG,"auth failed errorMsg=" + errorMsg);
-        }
-
-        // 初始化tts
-        mSpeechSynthesizer.initTts(TtsMode.MIX);
-        // 加载离线英文资源（提供离线英文合成功能）
-        int result = mSpeechSynthesizer.loadEnglishModel(((AppContext)getApplication()).getTTPath() + "/" + AppContext.ENGLISH_TEXT_MODEL_NAME, ((AppContext)getApplication()).getTTPath()
-                        + "/" + AppContext.ENGLISH_SPEECH_FEMALE_MODEL_NAME);
-//        toPrint("loadEnglishModel result=" + result);
-//
-//        //打印引擎信息和model基本信息
-//        printEngineInfo();
-    }
-
-    @OnClick({R.id.tv_progress, R.id.rl_progress, R.id.tv_pre, R.id.sb_progress, R.id.tv_next, R.id.tv_directory, R.id.tv_dayornight,R.id.tv_pagemode, R.id.tv_setting, R.id.bookpop_bottom, R.id.rl_bottom,R.id.tv_stop_read})
+    @OnClick({R.id.tv_progress, R.id.rl_progress, R.id.tv_pre, R.id.sb_progress, R.id.tv_next, R.id.tv_directory, R.id.tv_dayornight,R.id.tv_pagemode, R.id.tv_setting, R.id.bookpop_bottom, R.id.rl_bottom})
     public void onClick(View view) {
         switch (view.getId()) {
 //            case R.id.btn_return:
@@ -697,95 +614,7 @@ public class ReadActivity extends BaseActivity implements SpeechSynthesizerListe
                 break;
             case R.id.rl_bottom:
                 break;
-            case R.id.tv_stop_read:
-                if (mSpeechSynthesizer!=null){
-                    mSpeechSynthesizer.stop();
-                    isSpeaking = false;
-                    hideReadSetting();
-                }
-                break;
         }
-    }
-
-    /*
-    * @param arg0
-    */
-    @Override
-    public void onSynthesizeStart(String s) {
-
-    }
-
-    /**
-     * 合成数据和进度的回调接口，分多次回调
-     *
-     * @param utteranceId
-     * @param data 合成的音频数据。该音频数据是采样率为16K，2字节精度，单声道的pcm数据。
-     * @param progress 文本按字符划分的进度，比如:你好啊 进度是0-3
-     */
-    @Override
-    public void onSynthesizeDataArrived(String utteranceId, byte[] data, int progress) {
-
-    }
-
-    /**
-     * 合成正常结束，每句合成正常结束都会回调，如果过程中出错，则回调onError，不再回调此接口
-     *
-     * @param utteranceId
-     */
-    @Override
-    public void onSynthesizeFinish(String utteranceId) {
-
-    }
-
-    /**
-     * 播放开始，每句播放开始都会回调
-     *
-     * @param utteranceId
-     */
-    @Override
-    public void onSpeechStart(String utteranceId) {
-
-    }
-
-    /**
-     * 播放进度回调接口，分多次回调
-     *
-     * @param utteranceId
-     * @param progress 文本按字符划分的进度，比如:你好啊 进度是0-3
-     */
-    @Override
-    public void onSpeechProgressChanged(String utteranceId, int progress) {
-
-    }
-
-    /**
-     * 播放正常结束，每句播放正常结束都会回调，如果过程中出错，则回调onError,不再回调此接口
-     *
-     * @param utteranceId
-     */
-    @Override
-    public void onSpeechFinish(String utteranceId) {
-        pageFactory.nextPage();
-        if (pageFactory.islastPage()) {
-            isSpeaking = false;
-            Toast.makeText(ReadActivity.this,"小说已经读完了",Toast.LENGTH_SHORT);
-        }else {
-            isSpeaking = true;
-            mSpeechSynthesizer.speak(pageFactory.getCurrentPage().getLineToString());
-        }
-    }
-
-    /**
-     * 当合成或者播放过程中出错时回调此接口
-     *
-     * @param utteranceId
-     * @param error 包含错误码和错误信息
-     */
-    @Override
-    public void onError(String utteranceId, SpeechError error) {
-        mSpeechSynthesizer.stop();
-        isSpeaking = false;
-        Log.e(TAG,error.description);
     }
 
 }

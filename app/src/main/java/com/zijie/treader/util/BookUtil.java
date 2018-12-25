@@ -9,9 +9,7 @@ import com.zijie.treader.db.BookCatalogue;
 import com.zijie.treader.db.BookList;
 
 import org.litepal.crud.DataSupport;
-import org.mozilla.universalchardet.UniversalDetector;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

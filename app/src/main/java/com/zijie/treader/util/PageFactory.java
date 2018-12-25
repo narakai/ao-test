@@ -4,10 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.res.Resources;
-import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -16,8 +13,6 @@ import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
@@ -27,39 +22,14 @@ import com.zijie.treader.Config;
 import com.zijie.treader.R;
 import com.zijie.treader.db.BookCatalogue;
 import com.zijie.treader.db.BookList;
-import com.zijie.treader.view.BookPageWidget;
 import com.zijie.treader.view.PageWidget;
 
 import org.litepal.crud.DataSupport;
-import org.mozilla.universalchardet.UniversalDetector;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Vector;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Administrator on 2016/7/20 0020.
@@ -448,9 +418,8 @@ public class PageFactory {
 
     /**
      * 打开书本
-     * @throws IOException
      */
-    public void openBook(BookList bookList) throws IOException {
+    public void openBook(BookList bookList) {
         //清空数据
         currentCharter = 0;
 //        m_mbBufLen = 0;
